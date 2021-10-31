@@ -37,8 +37,8 @@
 //   NEO_GRB     Pixels are wired for GRB bitstream
 //   NEO_KHZ400  400 KHz bitstream (e.g. FLORA pixels)
 //   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
-int NUM_LEDS = 4;
-int LED_PIN = 4;
+int NUM_LEDS = 150;
+int LED_PIN = 6;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 const int HIGH_STRIKE_LIKELIHOOD = 5;
@@ -78,7 +78,7 @@ int NUM_FUNCTIONS = 2;
 void setup() {
   // Setup the Serial connection to talk over Bluetooth
   Serial.begin(9600);
-  
+
   // Neopixel setup
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
@@ -89,14 +89,17 @@ void setup() {
 }
 
 void loop() {
-  String trigger = readFromBluetooth();
-  if (trigger==String("f")) {
+  if (random(10) > 7) {
     int led = random(NUM_LEDS);
-    for (int i = 0; i < 10; i++) {
-      // Use this line to keep the lightning focused in one LED.
-      // lightningStrike(led):
-      // Use this line if you want the lightning to spread out among multiple LEDs.
-      lightningStrike(random(NUM_LEDS));
+    int mode = random(10);
+    for (int i = 0; i < 40; i++) {
+      if (mode > 2) {
+        // This line keeps the lightning focused in one LED.
+        lightningStrike(led);
+      } else {
+        // This line spreads out the lightning among multiple LEDs.
+        lightningStrike(random(NUM_LEDS));
+      }
     }
     // Once there's been one strike, I make it more likely that there will be a second.
     chance = HIGH_STRIKE_LIKELIHOOD;
@@ -104,7 +107,7 @@ void loop() {
     chance = LOW_STRIKE_LIKELIHOOD;
   }
   turnAllPixelsOff();
-  delay(1000);
+  delay(100);
 }
 
 void turnAllPixelsOff() {
@@ -117,30 +120,12 @@ void turnAllPixelsOff() {
 void lightningStrike(int pixel) {
   float brightness = callFunction(random(NUM_FUNCTIONS));
   float scaledWhite = abs(brightness*500);
-  
+
   strip.setPixelColor(pixel, strip.Color(scaledWhite, scaledWhite, scaledWhite));
   strip.show();
-  delay(random(5, 100));
+  delay(random(1, 20));
   currentDataPoint++;
   currentDataPoint = currentDataPoint%NUM_Y_VALUES;
-}
-
-/**
- * Read the data from the BLE, breaking on '\n' and '\r' characters.
- */
-String readFromBluetooth() {
-  String readString = "";
-
-    while (Serial.available()) {
-    delay(10);  //small delay to allow input buffer to fill
-
-    char c = Serial.read(); //gets one byte from serial buffer
-    if (c == '\n' || c == '\r') {
-      break;
-    }
-    readString += c;
-  }
-  return readString;
 }
 
 float callFunction(int index) {
@@ -151,8 +136,8 @@ float callFunction(int index) {
 float simple_moving_average() {
   uint32_t startingValue = currentDataPoint;
   uint32_t endingValue = (currentDataPoint+1)%NUM_Y_VALUES;
-  float simple_moving_average_current = simple_moving_average_previous + 
-                                  (yValues[startingValue])/NUM_Y_VALUES - 
+  float simple_moving_average_current = simple_moving_average_previous +
+                                  (yValues[startingValue])/NUM_Y_VALUES -
                                   (yValues[endingValue])/NUM_Y_VALUES;
 
   simple_moving_average_previous = simple_moving_average_current;
